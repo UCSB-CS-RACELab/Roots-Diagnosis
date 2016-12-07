@@ -176,3 +176,51 @@ generated. To get a very detailed log output, add the following entry somewhere 
 ```
 log4j.logger.edu.ucsb.cs.roots=DEBUG
 ```
+## Implementation Details
+The `SLOBasedDetector` is the primary anomaly detector supported in Roots. This class 
+reads benchmark results from the data store, and checks to see if a performance SLO
+has been violated. This computation is very simple, and implemented entirely in Java
+within the `SLOBasedDetector` class (see the `computeSLO` method). When an SLO violation
+is detected, the detector invokes the `reportAnomaly` method of the parent `AnomalyDetector`
+class, which triggers the anomaly handlers.
+
+One of the most basic anomaly handlers available in Roots is the `AnomalyLogger`. This
+implementation simply logs the detected anomalies:
+
+```
+2016-08-19 12:19:49,481 [Roots-event-bus-0]  WARN AnomalyLogger Anomaly (0c9d5086-0572-44a5-a290-c50292330ae9, javabook, GET /): Detected at Fri Aug 19 12:18:49 PDT 2016: SLA satisfaction: 92.5764
+```
+More sophisticated event handling behavior can be implemented by modifying the `AnomalyLogger`
+class, or implementing a whole new anomaly handler. Each new anomaly handler must have a method
+with the `@Subscribe` annotation (from [Guava](https://github.com/google/guava/wiki/EventBusExplained)), 
+and each such handler must be registerd explicitly
+within the `AnomalyDetectorService` class. For example:
+
+```java
+// in AnomalyLogger
+@Subscribe
+public void log(Anomaly anomaly) {
+    anomalyLog.warn(anomaly, "Detected at {}: {}", new Date(anomaly.getEnd()),
+            anomaly.getDescription());
+}
+```
+
+```java
+// in AnomalyDetectorService
+@Override
+protected void doInit() throws Exception {
+    environment.subscribe(new AnomalyLogger());
+    super.doInit();
+}
+```
+Another anomaly handler that gets triggered when an anomaly is detected is the
+`WorkloadAnalyzerService`. This class performs change point detection on
+workload data. Workload data is inferred from the access logs gathered from
+the applications. The default ElasticSearch data store configuration loads
+access logs from an index named appscale-logs. 
+
+The actual change point detection algorithms are implemented in the `PELTChangePointDetector`,
+`BinSegChangePointDetector` and `CLChangePointDetector` classes. By default
+Roots uses the PELT implementation. This can be changed by editing the `workload.analyzer`
+property in the `conf/roots.properties` file of the Roots pod. All change point
+detector classes must extend the `ChangePointDetector` abstract class.
