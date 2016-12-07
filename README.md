@@ -30,8 +30,83 @@ response time periodically. This functionality is implemented in the
 `BenchmarkingService` and `Benchmark` classes.
 
 In addition to the above three types of components, Roots also provides
-an abstraction to integrate with different data sources. The above components
-read/write data from data sources. Each data source must implement the
+an abstraction to integrate with different data stores. The above components
+read/write data from data stores. Each data store must implement the
 `DataStore` interface. The `ElasticSearchDataStore` class allows using
 an ElasticSearch server as the data store.
 
+All the above components are grouped and executed as a single Java process.
+We refer to this process as a Roots pod. A pod uses separate threads to
+execute anomaly detectors, handlers and benchmarkers. Data store abstraction
+allows a pod to communicate with a local or remote database.
+
+## Building
+Use Maven 3 or higher to build the code. From the root of the repository,
+execute `mvn clean install`. This will compile the code and create a zipped
+distribution package under `dist/target` directory. This zip file can 
+be extracted to the target deployment environment to deploy a Roots pod.
+
+## Configuration
+Extracting the zipped distribution package will create a directory with
+several subdirectories. One of these subdirectories is `conf`, which houses
+all the configuration files related to the Roots pod.
+
+To create a new benchmarker, create a properties file under `conf/benchmarks`.
+An example benchmarker configuration is shown below.
+
+```
+# javabook-benchmark.properties
+# =============================
+application=javabook
+period=15
+dataStore=elk
+call.0.method=GET
+call.0.url=http://10.0.0.1:8080/
+```
+This will benchmark the javabook application every 15 seconds by sending
+a GET request to the http://10.0.0.1:8080/ URL. Current implementation only 
+supports GET and POST methods (see `BenchmarkCall` class). Benchmark results
+are stored in a data store named elk (see below).
+
+To configure a data store, create a properties file under `conf/dataStores`.
+Here's an example configuration for an ElasticSearch data store.
+
+```
+# elk.properties
+# =============================
+name=elk
+type=ElasticSearchDataStore
+host=10.0.0.2
+port=9200
+accessLog.index=appscale-logs
+apiCall.index=appscale-apicalls
+benchmark.index=appscale-benchmarks
+```
+
+Name is used to refer to this data store from other components (e.g. from a benchmarker
+configuration as shown before). Three separate indices are used to store application 
+access logs, SDK call data and benchmark results.
+
+Finally, to configure an anomaly detector, create a properties file under `conf/detectors`.
+An example is given below.
+
+```
+# elk.properties
+# =============================
+application=javabook
+dataStore=elk
+period=60
+history=3600
+detector=SLOBasedDetector
+responseTimeUpperBound=32
+sloPercentage=95
+windowFillPercentage=75
+```
+
+This will start an anomaly detector on the javabook application. It reads the necessary
+data from the elk data store. The detector runs every 60 seconds, with a sliding window
+that spans 1 hour (3600 seconds). It looks for any violations of the SLO `32ms at 95%`.
+The detector will not run until the sliding window is at least 75% full. That is, if we
+are benchmarking the javabook application every 15 seconds, a full window should consist
+of 240 data points. The detector will not activate unless there are at least 180 data
+points.
