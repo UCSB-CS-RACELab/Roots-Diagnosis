@@ -137,3 +137,42 @@ For example suppose we have applications foo, bar and baz. The benchmarking
 and other monitoring data collected from these applications will be stored
 as different types. For instance: `appscale-benchmarks/foo`, `appscale-benchmarks/bar`
 and `appscale-benchmarks/baz`.
+
+## Launching the Roots Pod
+Once all the configurations are in place (along with ElasticSearch and R), you 
+can start the pod by executing the `roots.sh` script in the `bin` subdirectory
+of the pod. This will start the configured benchmarkers and detectors immediately.
+
+```
+2016-08-19 12:19:49,117 [main]  INFO RootsEnvironment Initializing Roots environment.
+2016-08-19 12:19:49,135 [main]  INFO FileConfigLoader Loading data store from: /home/ubuntu/roots-1.0.0-SNAPSHOT/conf/dataStores/elk.properties
+2016-08-19 12:19:49,156 [main]  INFO FileConfigLoader Loading data store from: /home/ubuntu/roots-1.0.0-SNAPSHOT/conf/dataStores/default.properties
+2016-08-19 12:19:49,280 [main]  INFO FileConfigLoader Loading benchmark from: /home/ubuntu/roots-1.0.0-SNAPSHOT/conf/benchmarks/javabook.properties
+2016-08-19 12:19:49,295 [main]  INFO BenchmarkingService Scheduled job for: javabook [Benchmark]
+2016-08-19 12:19:49,296 [main]  INFO AnomalyLogger Initializing AnomalyLogger
+2016-08-19 12:19:49,303 [main]  INFO FileConfigLoader Loading detector from: /home/ubuntu/roots-1.0.0-SNAPSHOT/conf/detectors/javabook.properties
+2016-08-19 12:19:49,311 [main]  INFO AnomalyDetectorService Scheduled job for: javabook [SLOBasedDetector]
+2016-08-19 12:19:49,320 [Roots-anomaly-detector-scheduler_Worker-1] DEBUG SLOBasedDetector Updating history for javabook (Fri Aug 19 11:18:49 PDT 2016 - Fri Aug 19 12:18:49 PDT 2016)
+```
+
+An example benchmarking event in the longs:
+
+```
+2016-08-19 12:19:49,420 [Roots-benchmark-scheduler_Worker-1] DEBUG Benchmark Benchmark result for javabook [GET /]: 20 ms
+```
+
+An example anomaly detection event in the logs:
+
+```
+2016-08-19 12:19:49,471 [Roots-anomaly-detector-scheduler_Worker-1] DEBUG SLOBasedDetector Calculating SLO with 229 data points.
+2016-08-19 12:19:49,476 [Roots-anomaly-detector-scheduler_Worker-1]  INFO SLOBasedDetector SLO metrics. Supported: 92.5764192139738, Expected: 95.0
+2016-08-19 12:19:49,481 [Roots-event-bus-2] DEBUG WorkloadAnalyzerService Loading workload history from: Fri Aug 19 10:18:49 PDT 2016, to: Fri Aug 19 12:18:49 PDT 2016
+2016-08-19 12:19:49,481 [Roots-event-bus-0]  WARN AnomalyLogger Anomaly (0c9d5086-0572-44a5-a290-c50292330ae9, javabook, GET /): Detected at Fri Aug 19 12:18:49 PDT 2016: SLA satisfaction: 92.5764
+```
+
+Use the `log4j.properties` file in the `lib` directory to control how the logs are 
+generated. To get a very detailed log output, add the following entry somewhere in the file:
+
+```
+log4j.logger.edu.ucsb.cs.roots=DEBUG
+```
