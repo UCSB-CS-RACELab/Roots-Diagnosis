@@ -41,7 +41,7 @@ execute anomaly detectors, handlers and benchmarkers. Data store abstraction
 allows a pod to communicate with a local or remote database.
 
 ## Building
-Use Maven 3 or higher to build the code. From the root of the repository,
+Use Maven 3 or higher and JDK 1.8 to build the code. From the root of the repository,
 execute `mvn clean install`. This will compile the code and create a zipped
 distribution package under `dist/target` directory. This zip file can 
 be extracted to the target deployment environment to deploy a Roots pod.
@@ -91,7 +91,7 @@ Finally, to configure an anomaly detector, create a properties file under `conf/
 An example is given below.
 
 ```
-# elk.properties
+# javabook-detector.properties
 # =============================
 application=javabook
 dataStore=elk
@@ -110,3 +110,30 @@ The detector will not run until the sliding window is at least 75% full. That is
 are benchmarking the javabook application every 15 seconds, a full window should consist
 of 240 data points. The detector will not activate unless there are at least 180 data
 points.
+
+## Setting Up R
+Roots uses R to execute some of the more complex data anlysis tasks (e.g. relative importance).
+Therefore an R language runtime must be installed alongside each Roots pod. We recommend
+R 3.2.3 or higher. 
+
+The Java-based Roots pod integrates with R through a technology called Rserve 
+(https://rforge.net/Rserve/). Follow the installation instructions at https://rforge.net/Rserve/doc.html
+to install Rserve. Launch it as a background process by running `R CMD Rserve`. 
+This will start a local TCP/IP server. The Roots pod will communicate with the
+R language runtime via this server.
+
+## Setting up ElasticSearch
+Use the `setup_elasticsearch.sh` script in the `bin` directory of the Roots pod
+to configure your ElasticSearch server. For example, if you have an ElasticSearch
+server running at 10.0.0.2, run the command `./setup_elasticsearch.sh 10.0.0.2`.
+This will create 3 new indices in ElasticSearch, and configure their schemas
+to have the proper timestamp fields. The default index names are appscale-logs, 
+appscale-apicalls and appscale-benchmarks. Be cautious if you choose to change
+these names. It may require changes in multiple files.
+
+Roots uses [ElasticSearch types](https://www.elastic.co/guide/en/elasticsearch/guide/current/mapping.html) 
+to store the data from different applications.
+For example suppose we have applications foo, bar and baz. The benchmarking
+and other monitoring data collected from these applications will be stored
+as different types. For instance: `appscale-benchmarks/foo`, `appscale-benchmarks/bar`
+and `appscale-benchmarks/baz`.
