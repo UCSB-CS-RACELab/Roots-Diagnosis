@@ -1,0 +1,21 @@
+{
+  "query": {
+    "bool": {
+      "must": {"term": {"%s": "%s"}},
+      "filter": {
+        "range": {
+          "%s": {
+            "gte": %d,
+            "lt": %d,
+            "format": "epoch_millis"
+          }
+        }
+      }
+    }
+  },
+  "sort": [
+    {"%s": "asc"},
+    {"%s": "asc"}
+  ],
+  "size": 4000
+}

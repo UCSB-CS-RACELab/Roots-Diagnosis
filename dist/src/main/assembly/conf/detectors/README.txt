@@ -1,0 +1,1 @@
+Add detector configurations here as properties files.

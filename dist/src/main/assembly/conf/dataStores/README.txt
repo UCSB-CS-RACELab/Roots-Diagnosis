@@ -1,0 +1,1 @@
+Add data store configurations here as properties files.

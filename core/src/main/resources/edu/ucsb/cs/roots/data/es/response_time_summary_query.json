@@ -1,0 +1,31 @@
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "range": {
+          "%s": {
+            "gte": %d,
+            "lt": %d,
+            "format": "epoch_millis"
+          }
+        }
+      }
+    }
+  },
+  "size": 0,
+  "aggs" : {
+    "methods" : {
+      "terms": { "field": "%s" },
+      "aggs" : {
+        "paths" : {
+          "terms": { "field": "%s"},
+          "aggs" : {
+            "avg_time" : {
+              "avg" : { "field": "%s" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
