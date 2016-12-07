@@ -217,7 +217,18 @@ Another anomaly handler that gets triggered when an anomaly is detected is the
 `WorkloadAnalyzerService`. This class performs change point detection on
 workload data. Workload data is inferred from the access logs gathered from
 the applications. The default ElasticSearch data store configuration loads
-access logs from an index named appscale-logs. 
+access logs from an index named appscale-logs. The results from the change
+point detection are logged as follows.
+
+```
+2016-08-19 12:19:51,167 [Roots-event-bus-2]  INFO WorkloadAnalyzerService Anomaly (0c9d5086-0572-44a5-a290-c50292330ae9, javabook, GET /): Workload level shift at Fri Aug 19 12:15:49 PDT 2016: 4.0 --> 0.3333333333333333
+```
+
+Workload unit is number of requests per unit time, where unit time is the period of the
+anomaly detector. For example, if the anomaly detector runs every minute, the workload
+unit will be number of requests per minute. The above sample log entry shows a drop
+in workload (from 4 to 0.33). This shift is logged with the exact time of the workload
+change.
 
 The actual change point detection algorithms are implemented in the `PELTChangePointDetector`,
 `BinSegChangePointDetector` and `CLChangePointDetector` classes. By default
