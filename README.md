@@ -174,6 +174,23 @@ string field](https://www.elastic.co/guide/en/elasticsearch/guide/current/multi-
 should also exist in the index. If the indices were created using the `setup_elasticsearch.sh`
 script, this should be taken care of.
 
+### Changing the ElasticSearch Attribute Names
+It is possible to configure the attribute/field names via the data store configuration.
+For instance, suppose you want to change the attribute names of the appscale-logs index.
+The default names are `@timestamp`, `http_verb` and `http_request`. Lets say you wish to
+change them to `MyTimestamp`, `MyMethod` and `MyPath` respectively.
+If your ElasticSearch data store configuration is in the `conf/dataStores/elk.properties`
+file, add the following entries to the file:
+
+```
+field.accessLog.timestamp=MyTimestamp
+field.accessLog.method=MyMethod
+field.accessLog.path=MyPath
+```
+You can configure other attribute names in a similar fashion. Look for constants defined
+in the Java classes in the `edu.ucsb.cs.roots.data.es` package. The constants whose value
+starts with the prefix `field.` are property names for various attribute names.
+
 ## Launching the Roots Pod
 Once all the configurations are in place (along with ElasticSearch and R), you 
 can start the pod by executing the `roots.sh` script in the `bin` subdirectory
@@ -415,3 +432,13 @@ for this purpose. The `ScheduledService` abstract class contains most of the cod
 related to scheduling and cancelling tasks. The `AnomalyDetectorService` and 
 `BenchmarkingService` extend this super class to obtain the task scheduling 
 capabilities.
+
+## Extension Points
+There are several different ways the existing Roots functionality can be modified and
+extended.
+* Implement new anomaly detectors by extending the `AnomalyDetector` class.
+* Implement new anomaly handlers, and subscribe them to the `RootsEnvironment`
+  via the [Guava event bus API](https://github.com/google/guava/wiki/EventBusExplained).
+* Implement a new data store by implementing the `DataStore` interface.
+* Implement a new bottleneck identification mechanism by extending the `BottleneckFinder` class.
+* Implement a new change point detector by extending the `ChangePointDetector` class.
