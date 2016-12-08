@@ -169,6 +169,11 @@ The request ID field acts as a foreign key between appscale-apicalls and appscal
 Each SDK call record in appscale-apicalls can be mapped to an access log entry in
 appscale-logs.
 
+For string fields (e.g. `request_id`, `requestOperation`), a corresponding [raw
+string field](https://www.elastic.co/guide/en/elasticsearch/guide/current/multi-fields.html) 
+should also exist in the index. If the indices were created using the `setup_elasticsearch.sh`
+script, this should be taken care of.
+
 ## Launching the Roots Pod
 Once all the configurations are in place (along with ElasticSearch and R), you 
 can start the pod by executing the `roots.sh` script in the `bin` subdirectory
