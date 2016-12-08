@@ -332,3 +332,47 @@ chosen as the bottleneck. For example, the first anomaly (`f4ea7f41-f2db-4b6a-aa
 was diagnosed as caused by the SDK call no. 1, with a score of 10. Higher the score,
 more confident we can be about the outcome. The maximum score possible in this voting algorithm
 is 13.
+
+### R Integration
+R code is invoked via the Java Rserve client. Here's some example Java code (from 
+`PELTChangePointDetector` class), that invokes R code:
+
+```java
+RClient r = rService.borrow();
+try {
+    r.assign("x", data);
+    r.evalAndAssign("result", getRCall());
+    int[] indices = r.evalToInts("cpts(result)");
+    if (indices.length == 0 || indices[0] == 0) {
+        return new int[]{};
+    }
+
+    // Indices returned by the 'changepoints' library represent
+    // the R indices of the last values of the segments.
+    return Arrays.stream(indices).map(i -> i - 1).toArray();
+} finally {
+    rService.release(r);
+}
+```
+
+This is equivalent to the following R code:
+
+```
+x <- data
+result <- cpt.mean(x, method='data')
+indices <- cpts(result)
+```
+
+Use an instance of `RService` (obtainable through `RootsEnvironment`) to
+obtain an `RClient` instance. This is done by calling the `borrow` method.
+You can invoke various R operations (assign, method calls etc) on the
+`RClient`. When finished, call `release` on `RService` to cleanup any
+resources held by the client.
+
+### Scheduled Tasks
+Roots requires many tasks to be executed periodically (e.g. benchmarkers, detectors).
+We use the [Quartz](http://www.quartz-scheduler.org/) scheduler in this implementation 
+for this purpose. The `ScheduledService` abstract class contains most of the code
+related to scheduling and cancelling tasks. The `AnomalyDetectorService` and 
+`BenchmarkingService` extend this super class to obtain the task scheduling 
+capabilities.
