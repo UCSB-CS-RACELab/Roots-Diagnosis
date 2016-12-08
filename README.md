@@ -479,3 +479,25 @@ interface.
 Once your data storage layer is properly configured and integrated to Roots through 
 the `DataStore` interface, the data analysis code (anomaly detectors, handlers etc)
 should work with no additional changes.
+
+### Out of the Box Testing (without AppScale)
+It is possible to set up a scenario in Roots involving benchmarkers and SLO-based anomaly
+detectors (`SLOBasedDetector`), without having to set up an AppScale cloud. This is
+probably the easiest way to start using the code available in this repo. Follow the steps
+given below to explore this option.
+
+1. Build and deploy a Roots pod (you can do this on your local machine).
+2. Set up the ElasticSearch and R environments as described.
+3. Configure a benchmarker in Roots. You can configure it to benchmark any web application
+   you have running (in a test web server, or in some cloud platform). You can also
+   point the benchmarker to an existing web URL such as http://cs.ucsb.edu.
+4. Configure an instance of `SLOBasedDetector` for the same application.
+5. Start the Roots pod.
+
+When the pod becomes active, it will start benchmarking your web application periodically.
+Once enough data points have been collected, the anomaly detector will start computing SLO
+satisfaction level for your application. This is sufficient to detect SLO violations. You
+will see a log entry whenever the detector comes across an SLO violation. However, without
+the other monitoring data (access logs, SDK call records etc.) the root cause analysis
+will not run. You will see a warning message indicating that there's no data available 
+to perform root cause analysis.
