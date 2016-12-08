@@ -130,14 +130,44 @@ server running at 10.0.0.2, run the command `./setup_elasticsearch.sh 10.0.0.2`.
 This will create 3 new indices in ElasticSearch, and configure their schemas
 to have the proper timestamp fields. The default index names are appscale-logs, 
 appscale-apicalls and appscale-benchmarks. Be cautious if you choose to change
-these names. It may require changes in multiple files.
+these names. It may require changes in multiple places.
 
 Roots uses [ElasticSearch types](https://www.elastic.co/guide/en/elasticsearch/guide/current/mapping.html) 
-to store the data from different applications.
+to store the data from different applications in the same index.
 For example suppose we have applications foo, bar and baz. The benchmarking
 and other monitoring data collected from these applications will be stored
-as different types. For instance: `appscale-benchmarks/foo`, `appscale-benchmarks/bar`
-and `appscale-benchmarks/baz`.
+as different types. For instance the benchmarking results will be saved 
+as: `appscale-benchmarks/foo`, `appscale-benchmarks/bar` and `appscale-benchmarks/baz`.
+
+### ElasticSearch Schema
+Roots allows configuring the data attribute names used to index and query 
+ElasticSearch data. But it is a lot easier to use the defaults whenever possible.
+Here we list the three indices uses by Roots, and their default data attribute names.
+
+1. appscale-logs (store the application access logs here)
+   * `http_verb`: HTTP method of the request
+   * `http_request`: HTTP URL path
+   * `time_duration`: Response time in seconds
+   * `@timestamp`: Timestamp when the request was received
+   * `request_id`: Unique ID of the request
+2. appscale-benchmarks (store the application benchmark results here -- this is done by Roots benchmarkers)
+   * `timestamp`: Timestamp when the measurement was taken
+   * `method`: HTTP method
+   * `path`: HTTP URL path
+   * `responseTime`: Measurement value in milliseconds
+3. appscale-apicalls (data gathered from the cloud SDK/kernel services should be stored here)
+   * `requestId`: Unique ID of the HTTP request
+   * `requestOperation`: HTTP method and URL path (e.g. GET /foo)
+   * `requestTimestamp`: Timestamp of the HTTP request
+   * `sequenceNumber`: SDK call sequence number within the HTTP request
+   * `service`: Service invoked by the SDK call (e.g. datastore)
+   * `operation`: Operation invoked by the SDK call (e.g. query)
+   * `elapsed`: Time spent on the SDK call in milliseconds
+   * `timestamp`: Timestamp of the SDK call
+   
+The request ID field acts as a foreign key between appscale-apicalls and appscale-logs.
+Each SDK call record in appscale-apicalls can be mapped to an access log entry in
+appscale-logs.
 
 ## Launching the Roots Pod
 Once all the configurations are in place (along with ElasticSearch and R), you 
@@ -341,7 +371,7 @@ R code is invoked via the Java Rserve client. Here's some example Java code (fro
 RClient r = rService.borrow();
 try {
     r.assign("x", data);
-    r.evalAndAssign("result", getRCall());
+    r.evalAndAssign("result", "cpt.mean(x, method='PELT')");
     int[] indices = r.evalToInts("cpts(result)");
     if (indices.length == 0 || indices[0] == 0) {
         return new int[]{};
@@ -359,7 +389,7 @@ This is equivalent to the following R code:
 
 ```
 x <- data
-result <- cpt.mean(x, method='data')
+result <- cpt.mean(x, method='PELT')
 indices <- cpts(result)
 ```
 
@@ -368,6 +398,10 @@ obtain an `RClient` instance. This is done by calling the `borrow` method.
 You can invoke various R operations (assign, method calls etc) on the
 `RClient`. When finished, call `release` on `RService` to cleanup any
 resources held by the client.
+
+`RClient` instances are pooled for performance reasons. Each instance
+represents a TCP connection to the Rserve server running in the background.
+Make sure to call `release` on `RService` to avoid exhausting the pool.
 
 ### Scheduled Tasks
 Roots requires many tasks to be executed periodically (e.g. benchmarkers, detectors).
