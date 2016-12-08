@@ -174,6 +174,14 @@ string field](https://www.elastic.co/guide/en/elasticsearch/guide/current/multi-
 should also exist in the index. If the indices were created using the `setup_elasticsearch.sh`
 script, this should be taken care of.
 
+Here are the key points concerning the schema we have used in ElasticSearch:
+* All HTTP requests must have a unique ID (`request_id` in appscale-logs)
+* The SDK/PaaS kernel calls made by an HTTP request must carry the corresponding HTTP request ID (`requestId` in appscale-apicalls).
+* All events must be timestamped
+* Record HTTP method and URL path along with HTTP request metadata (`http_verb` and `http_request` in appscale-logs)
+
+Take the above factors into account when designing your data collection and storage layers.
+
 ### Changing the ElasticSearch Attribute Names
 It is possible to configure the attribute/field names via the data store configuration.
 For instance, suppose you want to change the attribute names of the appscale-logs index.
@@ -302,7 +310,7 @@ some quantile metrics. The verifier computes a high quantile (0.99 by default)
 on each regressor, and also the data points that exceed this high quantile.
 These components log their output as follows.
 
-`RelativeImportanceBasedFinder initial rankings`
+`RelativeImportanceBasedFinder` initial rankings:
 ```
 2016-09-09 14:06:41,706 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Relative importance metrics for path: user:CreateLoginURL, datastore_v3:RunQuery
 [ 1] user:CreateLoginURL 0.499862
@@ -312,7 +320,7 @@ These components log their output as follows.
 Total variance explained: 0.9993102676179328
 ```
 
-`RelativeImportanceBasedFinder relative importance trends`
+`RelativeImportanceBasedFinder` relative importance trends:
 ```
 2016-09-09 14:06:41,706 [Roots-event-bus-5] DEBUG RelativeImportanceBasedFinder Analyzing historical trend for API call user:CreateLoginURL with ranking 1
 2016-09-09 14:06:41,707 [Roots-event-bus-5] DEBUG RelativeImportanceBasedFinder Performing change point analysis using 25 data points
@@ -320,14 +328,14 @@ Total variance explained: 0.9993102676179328
 2016-09-09 14:06:41,710 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Net change in relative importance for user:CreateLoginURL: 0.03308690111838919 --> 0.49877762639541867 [1407.4776105828955%]
 ```
 
-`PercentileBasedVerifier 0.99 quantiles`
+`PercentileBasedVerifier` 0.99 quantiles:
 ```
 2016-09-09 14:06:41,711 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): 99.0p for user:CreateLoginURL: 101.0
 2016-09-09 14:06:41,711 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): 99.0p for datastore_v3:RunQuery: 118.97
 2016-09-09 14:06:41,711 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): 99.0p for LOCAL: 21.879999999999995
 ```
 
-`PercentileBasedVerifier point anomalies`
+`PercentileBasedVerifier` point anomalies:
 ```
 2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Top 1 anomalous value; index: 1 timestamp: Fri Sep 09 14:02:05 PDT 2016 values: 118.97 --> 148.0
 2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Top 2 anomalous value; index: 2 timestamp: Fri Sep 09 13:45:05 PDT 2016 values: 21.879999999999995 --> 26.0
@@ -442,3 +450,22 @@ extended.
 * Implement a new data store by implementing the `DataStore` interface.
 * Implement a new bottleneck identification mechanism by extending the `BottleneckFinder` class.
 * Implement a new change point detector by extending the `ChangePointDetector` class.
+
+## Using Roots with a Different Cloud Platform
+The data analysis code is completely independent from how the data is collected and stored.
+In our original prototype, we collect data from various compoenents available in AppScale.
+This data is then stored in an ElasticSearch server (using the schema outlined above).
+However, it is possible to use the data analysis code with data collected from a different
+cloud platform, and stored using a different schema. 
+
+The data storage layer is abstracted out by the `DataStore` interface. We provide a default
+implementation of this interface based on ElasticSearch (`ElsticSearchDataStore`). One may 
+study the schema we have used, and store their data in a similar format, so it can be read 
+using the same class. The `ElasticSearchDataStore` allows some flexibility around the
+attribute names used in indices. However, if it's too complicated to retrofit your data
+into our format, you should consider writing your own implementation of the `DataStore`
+interface.
+
+Once your data storage layer is properly configured and integrated to Roots through 
+the `DataStore` interface, the data analysis code (anomaly detectors, handlers etc)
+should work with no additional changes.
