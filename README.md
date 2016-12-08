@@ -30,8 +30,9 @@ response time periodically. This functionality is implemented in the
 `BenchmarkingService` and `Benchmark` classes.
 
 In addition to the above three types of components, Roots also provides
-an abstraction to integrate with different data stores. The above components
-read/write data from data stores. Each data store must implement the
+an abstraction to integrate with different data stores. Anomaly detectors,
+handlers and benchmarkers
+read/write data from/to a data store. Each data store must implement the
 `DataStore` interface. The `ElasticSearchDataStore` class allows using
 an ElasticSearch server as the data store.
 
@@ -41,7 +42,7 @@ execute anomaly detectors, handlers and benchmarkers. Data store abstraction
 allows a pod to communicate with a local or remote database.
 
 ## Building
-Use Maven 3 or higher and JDK 1.8 to build the code. From the root of the repository,
+Use Maven 3 or higher with JDK 1.8 to build the code. From the root of the repository,
 execute `mvn clean install`. This will compile the code and create a zipped
 distribution package under `dist/target` directory. This zip file can 
 be extracted to the target deployment environment to deploy a Roots pod.
@@ -235,3 +236,62 @@ The actual change point detection algorithms are implemented in the `PELTChangeP
 Roots uses the PELT implementation. This can be changed by editing the `workload.analyzer`
 property in the `conf/roots.properties` file of the Roots pod. All change point
 detector classes must extend the `ChangePointDetector` abstract class.
+
+Finally, Roots provides `BottleneckFinderService` -- the anomaly handler responsible
+for identifying the bottleneck components in the cloud platform. By default this 
+class simply calls out to the `RelativeImportanceBasedFinder` class, which 
+performs the relative impotance calculations using the data gathered from the
+cloud platform. In addition to computing the relative importance rankings at the 
+SLO violation (`computeRankings` method), this class also computes the historical trend
+of relative importance for each regressor (`analyzeHistory` method). PELT algorithm
+is used to detect change points in these relative importance trends. Finally,
+`RelativeImportanceBasedFinder` invokes the `PercentileBasedVerifier` to compute
+some quantile metrics. The verifier computes a high quantile (0.99 by default)
+on each regressor, and also the data points that exceed this high quantile.
+These components log their output as follows.
+
+`RelativeImportanceBasedFinder initial rankings`
+```
+2016-09-09 14:06:41,706 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Relative importance metrics for path: user:CreateLoginURL, datastore_v3:RunQuery
+[ 1] user:CreateLoginURL 0.499862
+[ 2] datastore_v3:RunQuery 0.499449
+[ 3] LOCAL 0.000690
+
+Total variance explained: 0.9993102676179328
+```
+
+`RelativeImportanceBasedFinder relative importance trends`
+```
+2016-09-09 14:06:41,706 [Roots-event-bus-5] DEBUG RelativeImportanceBasedFinder Analyzing historical trend for API call user:CreateLoginURL with ranking 1
+2016-09-09 14:06:41,707 [Roots-event-bus-5] DEBUG RelativeImportanceBasedFinder Performing change point analysis using 25 data points
+2016-09-09 14:06:41,710 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Relative importance level shift at Fri Sep 09 13:59:35 PDT 2016 for user:CreateLoginURL: 0.03308690111838919 --> 0.49877762639541867
+2016-09-09 14:06:41,710 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Net change in relative importance for user:CreateLoginURL: 0.03308690111838919 --> 0.49877762639541867 [1407.4776105828955%]
+```
+
+`PercentileBasedVerifier 0.99 quantiles`
+```
+2016-09-09 14:06:41,711 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): 99.0p for user:CreateLoginURL: 101.0
+2016-09-09 14:06:41,711 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): 99.0p for datastore_v3:RunQuery: 118.97
+2016-09-09 14:06:41,711 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): 99.0p for LOCAL: 21.879999999999995
+```
+
+`PercentileBasedVerifier point anomalies`
+```
+2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Top 1 anomalous value; index: 1 timestamp: Fri Sep 09 14:02:05 PDT 2016 values: 118.97 --> 148.0
+2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Top 2 anomalous value; index: 2 timestamp: Fri Sep 09 13:45:05 PDT 2016 values: 21.879999999999995 --> 26.0
+2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Top 3 anomalous value; index: 2 timestamp: Fri Sep 09 13:40:35 PDT 2016 values: 21.879999999999995 --> 22.0
+2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Top 4 anomalous value; index: 1 timestamp: Fri Sep 09 14:02:50 PDT 2016 values: 118.97 --> 119.0
+2016-09-09 14:06:41,712 [Roots-event-bus-5]  INFO RelativeImportanceBasedFinder Anomaly (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, j4, GET /): Secondary verification result; percentiles: 1 percentiles2: 1 ri: 0 match: false ri_onset: true ri_top: 0 data_points: 104
+```
+
+The last log entry (Secondary verification result) summarizes the outcome of 
+the bottleneck identification process.
+* `percentiles`: Component with the highest 0.99 quantile
+* `percentiles2`: Component with the highest outliers that exceed 0.99 quantile
+* `ri`: Component chosen by performing change point detection on relative importance trends
+* `ri_top`: Component with the highest relative importance when the SLO was violated
+
+In the above example the quantile metrics have picked the SDK call no. 1 (`datastore_v3:RunQuery`)
+as the bottleneck candidate. But the relative importance metrics have picked the SDK call
+no. 0 (`user:CreateLoginURL`) as the bottleneck candidate.  A voting algorithm can be
+implemented to determine the actual bottleneck based on these results.
