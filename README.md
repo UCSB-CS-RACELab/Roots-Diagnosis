@@ -291,7 +291,44 @@ the bottleneck identification process.
 * `ri`: Component chosen by performing change point detection on relative importance trends
 * `ri_top`: Component with the highest relative importance when the SLO was violated
 
+For `ri`, the algorithm looks for the component with the highest relative importance which
+also shows a significant increase in relative importance (as determined by the change point
+detection). If none of the components show an increase in relative importance (i.e. no change 
+points), then the component with the highest relative importance is chosen. 
+
 In the above example the quantile metrics have picked the SDK call no. 1 (`datastore_v3:RunQuery`)
 as the bottleneck candidate. But the relative importance metrics have picked the SDK call
-no. 0 (`user:CreateLoginURL`) as the bottleneck candidate.  A voting algorithm can be
-implemented to determine the actual bottleneck based on these results.
+no. 0 (`user:CreateLoginURL`) as the bottleneck candidate; SDK calls are 0-indexed. A voting 
+algorithm can be implemented to determine the actual bottleneck based on these results.
+
+### Voting Algorithm for Bottleneck Identification
+The voting algorithm is implemented as a separate Python script, which can be executed
+with a Roots log file as the input. The Python script is available at the root of the Git
+repository (`new_weighted_bi_finder.py`). One may execute the script as 
+`python new_weighted_bi_finder.py path/to/roots.log`.
+
+The reason why this part is implemented as a separate script is, so that we can
+easily experiment with different voting strategies. 
+The script parses the Roots log looking for seconday verification 
+results (described above), and uses that information to determine the bottleneck
+in the cloud platform. It is possible to implement this logic as part of the 
+Java code itself, and avoid having to execute a separate script post-facto.
+
+A sample output of the given Python script is shown below.
+
+```
+Date Time ID RI_Top RI_Inc P1 P2 Onset Bottleneck Score
+2016-09-09 14:06:41,411 (f4ea7f41-f2db-4b6a-aa5e-54f49b54a6fa, 1 0 1 1 True 1 10
+2016-09-09 14:06:41,712 (3eb5ea9b-dd4f-4757-9793-6fa07de2b552, 0 0 1 1 True 0 7
+2016-09-09 14:06:42,029 (0245a6ac-acd0-4118-800b-f733deeae2ae, 1 0 1 1 True 1 10
+2016-09-09 14:31:37,466 (5ea4be52-42e6-494b-8f63-e27905a0f9bd, 1 1 1 1 False 1 10
+2016-09-09 14:31:37,741 (1fc7a6be-23a2-4462-af34-36ebf479ba54, 1 1 1 1 False 1 10
+2016-09-09 14:31:38,012 (16a3064f-b7a3-4ec2-b3d4-91d1308e68b4, 1 1 1 1 False 1 10
+2016-09-09 16:04:38,482 (48f906cd-8a5a-481a-9de6-109a49a8907a, 0 0 1 2 True 0 7
+```
+
+The last field of each line specifies the winning score. The field just before that is the component
+chosen as the bottleneck. For example, the first anomaly (`f4ea7f41-f2db-4b6a-aa5e-54f49b54a6fa`)
+was diagnosed as caused by the SDK call no. 1, with a score of 10. Higher the score,
+more confident we can be about the outcome. The maximum score possible in this voting algorithm
+is 13.
