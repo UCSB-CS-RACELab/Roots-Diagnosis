@@ -2,6 +2,9 @@ package edu.ucsb.cs.roots.data;
 
 import java.util.Collection;
 
+/**
+ * Represents the mean response time of an operation at a particular point in time.
+ */
 public final class ResponseTimeSummary {
 
     private final long timestamp;

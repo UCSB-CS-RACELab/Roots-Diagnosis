@@ -4,6 +4,11 @@ import com.google.common.base.Strings;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * A cloud SDK call (a PaaS kernel invocation) made by an HTTP request. Includes data
+ * about the SDK service and the operation invoked, along with timestamp and execution
+ * time.
+ */
 public final class ApiCall {
 
     private final long requestTimestamp;

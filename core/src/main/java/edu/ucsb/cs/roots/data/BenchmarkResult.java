@@ -4,6 +4,10 @@ import com.google.common.base.Strings;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * Represents a benchmark measurement taken at a specific point in time. A benchmark measurement
+ * is related to a specific application, and an operation (identified by method and path).
+ */
 public class BenchmarkResult {
 
     private final long timestamp;

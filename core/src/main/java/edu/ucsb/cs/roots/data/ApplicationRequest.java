@@ -9,6 +9,11 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * Represents all the metadata corresponding to a single HTTP request. Contains the request ID,
+ * timestamp, application and the operation invoked, and the total response time. Also
+ * includes the list of SDK calls (ApiCall) made by the HTTP request while it was active.
+ */
 public final class ApplicationRequest {
 
     public static final Comparator<ApplicationRequest> TIME_ORDER = (o1, o2) ->

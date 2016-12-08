@@ -27,6 +27,16 @@ public interface DataStore {
         return ImmutableMap.of();
     }
 
+    /**
+     * Similar to getResponseTimeSummary, but returns a timeseries of response time values
+     * for each request type, instead of just one response time value.
+     *
+     * @param application Name of the application
+     * @param start Start time of the interval (inclusive)
+     * @param end End time of the interval (exclusive)
+     * @return A Map of request types (String) and response time data as a
+     *         timeseries (List<ResponseTimeSummary>)
+     */
     default ImmutableListMultimap<String,ResponseTimeSummary> getResponseTimeHistory(
             String application, long start, long end, long period) throws DataStoreException {
         return ImmutableListMultimap.of();
@@ -83,6 +93,11 @@ public interface DataStore {
         return ImmutableList.of();
     }
 
+    /**
+     * Write a BenchmarkResult to the underlying persistent store.
+     *
+     * @param result the result to be stored
+     */
     default void recordBenchmarkResult(BenchmarkResult result) throws DataStoreException {
     }
 
