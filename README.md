@@ -6,6 +6,8 @@ detect anomalies, and conduct root cause analysis. Roots was originally develope
 to monitor an AppScale cloud. However, the data analysis code is not specific
 to AppScale, and thus can be used with other cloud platforms as well.
 
+[Concepts](#Concepts)
+
 ## Concepts
 There are three types of components implemented in this code.
 
