@@ -501,3 +501,21 @@ will see a log entry whenever the detector comes across an SLO violation. Howeve
 the other monitoring data (access logs, SDK call records etc.) the root cause analysis
 will not run. You will see a warning message indicating that there's no data available 
 to perform root cause analysis.
+
+### Random Data Store for Testing
+The code base consists of a `RandomDataStore` class that can be used to load randomly
+generated monitoring data into the data analysis components of Roots. You can modify
+this class to test the anomaly detectors and handlers against mock data sets. This
+data store implementation is not connected to any persistent storage. It can produce
+mock results in memory, and return them as query results. Here's a sample configuration
+for the random data store:
+
+```
+# random-datastore.properties
+# ===========================
+name=default
+type=RandomDataStore
+```
+
+With the above configuration, you can point your anomaly detectors to the data store
+named `default`, to load data from it.
