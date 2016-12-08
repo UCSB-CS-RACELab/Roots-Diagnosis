@@ -6,15 +6,15 @@ detect anomalies, and conduct root cause analysis. Roots was originally develope
 to monitor an AppScale cloud. However, the data analysis code is not specific
 to AppScale, and thus can be used with other cloud platforms as well.
 
-* [Concepts](#Concepts)
-* [Building](#Building)
-* [Configuration](#Configuration)
-* [Setting Up R](#Setting-Up-R)
-* [Setting Up ElasticSearch](#Setting-Up-ElasticSearch)
-* [Launching the Roots Pod](#Launching-the-Roots-Pod)
-* [Implementation Details](#Implementation-Details)
-* [Extension Points](#Extension-Points)
-* [Using Roots with a Different Cloud Platform](#Using-Roots-with-a-Different-Cloud-Platform)
+* [Concepts](#concepts)
+* [Building](#building)
+* [Configuration](#configuration)
+* [Setting Up R](#setting-up-r)
+* [Setting Up ElasticSearch](#setting-up-elasticsearch)
+* [Launching the Roots Pod](#launching-the-roots-pod)
+* [Implementation Details](#implementation-details)
+* [Extension Points](#extension-points)
+* [Using Roots with a Different Cloud Platform](#using-roots-with-a-different-cloud-platform)
 
 ## Concepts
 There are three types of components implemented in this code.
