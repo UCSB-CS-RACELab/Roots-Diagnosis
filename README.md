@@ -133,6 +133,27 @@ to install Rserve. Launch it as a background process by running `R CMD Rserve`.
 This will start a local TCP/IP server. The Roots pod will communicate with the
 R language runtime via this server.
 
+Roots also uses several third-party R libraries. You can install them through [CRAN
+package management service](https://www.r-bloggers.com/installing-r-packages/). Simply
+launch the R console, and execute the following commands.
+
+```
+install.packages('changepoint', dependencies=TRUE)
+install.packages('relaimpo', dependencies=TRUE)
+install.packages('tsoutliers', dependencies=TRUE)
+```
+
+To make sure the installation was successful, run the following R commands.
+
+```
+library('changepoint')
+library('relaimpo')
+library('tsoutliers')
+```
+
+If any of the above commands produce a `no package called ?????` output, it has failed to
+install.
+
 ## Setting up ElasticSearch
 Use the `setup_elasticsearch.sh` script in the `bin` directory of the Roots pod
 to configure your ElasticSearch server. For example, if you have an ElasticSearch
